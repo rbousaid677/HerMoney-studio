@@ -1,0 +1,378 @@
+{
+  "entities": {
+    "Article": {
+      "title": "Article",
+      "description": "An editorial magazine article supporting draft and published statuses with full SEO metadata.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Primary article headline.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly unique article slug.",
+          "minLength": 1,
+          "maxLength": 180,
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "category": {
+          "type": "string",
+          "description": "One of the six editorial magazine categories.",
+          "enum": [
+            "Make Money Online",
+            "Work From Home",
+            "Freelancing",
+            "Small Business Ideas",
+            "Passive Income",
+            "Blogging & Pinterest"
+          ]
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "HTTPS URL, app asset path, or compressed WebP data URI for the article cover image.",
+          "maxLength": 300000
+        },
+        "content": {
+          "type": "string",
+          "description": "Sanitized rich-text HTML article body.",
+          "maxLength": 500000
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short editorial summary shown on category and homepage cards.",
+          "maxLength": 500
+        },
+        "metaDescription": {
+          "type": "string",
+          "description": "SEO meta description for search engines and social cards.",
+          "maxLength": 320
+        },
+        "seoTitle": {
+          "type": "string",
+          "description": "SEO page title override or auto-generated title.",
+          "maxLength": 160
+        },
+        "canonicalUrl": {
+          "type": "string",
+          "description": "Canonical URL for the article.",
+          "maxLength": 500
+        },
+        "tags": {
+          "type": "array",
+          "description": "Up to 15 editorial keyword tags."
+        },
+        "author": {
+          "type": "string",
+          "description": "Editorial author display name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "publicationDate": {
+          "type": "string",
+          "description": "Editorial publication date in YYYY-MM-DD format.",
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "description": "Editorial workflow state: draft or published.",
+          "enum": ["draft", "published"]
+        },
+        "authorUid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the administrator who created the article.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the article record was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the article record was last modified."
+        }
+      },
+      "required": [
+        "title",
+        "slug",
+        "category",
+        "coverImage",
+        "content",
+        "excerpt",
+        "metaDescription",
+        "seoTitle",
+        "canonicalUrl",
+        "tags",
+        "author",
+        "publicationDate",
+        "status",
+        "authorUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdSenseSettings": {
+      "title": "AdSenseSettings",
+      "description": "Global Google AdSense configuration and per-placement activation controls.",
+      "type": "object",
+      "properties": {
+        "adsenseEnabled": {
+          "type": "boolean",
+          "description": "Master switch enabling Google AdSense slots only when validly configured."
+        },
+        "publisherId": {
+          "type": "string",
+          "description": "Google AdSense Publisher ID (e.g. ca-pub-XXXXXXXXXXXXXXXX).",
+          "maxLength": 64
+        },
+        "placements": {
+          "type": "object",
+          "description": "Configurable placement slots mapped by placement key."
+        },
+        "updatedByUid": {
+          "type": "string",
+          "description": "Administrator UID that last updated the AdSense configuration.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the last AdSense configuration update."
+        }
+      },
+      "required": [
+        "adsenseEnabled",
+        "publisherId",
+        "placements",
+        "updatedByUid",
+        "updatedAt"
+      ]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Reader inquiry submitted through the Contact Us page.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Sender full name.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Sender email address.",
+          "minLength": 3,
+          "maxLength": 180
+        },
+        "subject": {
+          "type": "string",
+          "description": "Inquiry subject line.",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "message": {
+          "type": "string",
+          "description": "Inquiry message body.",
+          "minLength": 10,
+          "maxLength": 4000
+        },
+        "consentAccepted": {
+          "type": "boolean",
+          "description": "Explicit GDPR consent confirmation from the sender."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the inquiry was submitted."
+        }
+      },
+      "required": [
+        "name",
+        "email",
+        "subject",
+        "message",
+        "consentAccepted",
+        "createdAt"
+      ]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized administrator registry document keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Administrator email address.",
+          "minLength": 3,
+          "maxLength": 180
+        },
+        "role": {
+          "type": "string",
+          "description": "Authorized role identifier.",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the admin record was created."
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    },
+    "BackupRecord": {
+      "title": "BackupRecord",
+      "description": "Snapshot audit log entry recording periodic editorial backups.",
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable backup label.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "articleCount": {
+          "type": "number",
+          "description": "Total articles included in the snapshot."
+        },
+        "publishedCount": {
+          "type": "number",
+          "description": "Published articles included in the snapshot."
+        },
+        "draftCount": {
+          "type": "number",
+          "description": "Draft articles included in the snapshot."
+        },
+        "sizeBytes": {
+          "type": "number",
+          "description": "Serialized JSON backup payload size in bytes."
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "Administrator UID who created the backup record.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the backup was recorded."
+        }
+      },
+      "required": [
+        "label",
+        "articleCount",
+        "publishedCount",
+        "draftCount",
+        "sizeBytes",
+        "createdByUid",
+        "createdAt"
+      ]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "Real-time editorial or administrative notification stored in Firestore.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Short notification headline.",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "message": {
+          "type": "string",
+          "description": "Notification body text.",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "type": {
+          "type": "string",
+          "description": "Notification category.",
+          "enum": ["article_published", "editorial", "system"]
+        },
+        "audience": {
+          "type": "string",
+          "description": "Target audience scope.",
+          "enum": ["public", "admin"]
+        },
+        "link": {
+          "type": "string",
+          "description": "Optional internal app route path starting with /.",
+          "maxLength": 300
+        },
+        "read": {
+          "type": "boolean",
+          "description": "Admin read status flag."
+        },
+        "createdByUid": {
+          "type": "string",
+          "description": "Administrator UID that created the notification.",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the notification was created."
+        }
+      },
+      "required": [
+        "title",
+        "message",
+        "type",
+        "audience",
+        "link",
+        "read",
+        "createdByUid",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/articles/{articleId}": {
+      "schema": {
+        "$ref": "#/entities/Article"
+      },
+      "description": "Editorial articles collection; published articles are publicly readable, drafts and writes are restricted to verified administrators."
+    },
+    "/siteSettings/{settingId}": {
+      "schema": {
+        "$ref": "#/entities/AdSenseSettings"
+      },
+      "description": "Publicly readable non-PII site configuration (e.g. adsense placement settings) writable only by verified administrators."
+    },
+    "/contactMessages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ContactMessage"
+      },
+      "description": "Write-only public contact form submissions; read/list/delete restricted to verified administrators to protect sender PII."
+    },
+    "/admins/{uid}": {
+      "schema": {
+        "$ref": "#/entities/AdminUser"
+      },
+      "description": "Administrator UID allowlist documents; strictly protected against self-registration or unauthorized reads."
+    },
+    "/backups/{backupId}": {
+      "schema": {
+        "$ref": "#/entities/BackupRecord"
+      },
+      "description": "Periodic editorial backup metadata log restricted strictly to verified administrators."
+    },
+    "/notifications/{notificationId}": {
+      "schema": {
+        "$ref": "#/entities/AppNotification"
+      },
+      "description": "Real-time public editorial announcements and administrator activity notifications."
+    }
+  }
+}

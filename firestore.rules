@@ -1,0 +1,322 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // -------------------------------------------------------------------------
+    // Primitive Helpers
+    // -------------------------------------------------------------------------
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedEmail() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Update this email if you configure a different primary administrator email during project setup.
+    function isBootstrapAdminEmail() {
+      return isVerifiedEmail() && request.auth.token.email == 'rbousaid677@gmail.com';
+    }
+
+    // Never use inside allow list blocks (uses exists())
+    function isAdmin() {
+      return isVerifiedEmail() && (
+        request.auth.token.email == 'rbousaid677@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isAllowedCategory(cat) {
+      return cat is string && cat.size() <= 60 && cat in [
+        'Make Money Online',
+        'Work From Home',
+        'Freelancing',
+        'Small Business Ideas',
+        'Passive Income',
+        'Blogging & Pinterest'
+      ];
+    }
+
+    function isValidTagList(tags) {
+      return tags is list &&
+        tags.size() <= 15 &&
+        (tags.size() == 0 || (tags[0] is string && tags[0].size() >= 1 && tags[0].size() <= 50));
+    }
+
+    function isValidSlug(slug) {
+      return slug is string &&
+        slug.size() >= 1 &&
+        slug.size() <= 180 &&
+        slug.matches('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+    }
+
+    // -------------------------------------------------------------------------
+    // Entity Validation Blueprints
+    // -------------------------------------------------------------------------
+    function isValidArticle(data) {
+      return data.keys().hasAll([
+          'title', 'slug', 'category', 'coverImage', 'content',
+          'excerpt', 'metaDescription', 'seoTitle', 'canonicalUrl',
+          'tags', 'author', 'publicationDate', 'status', 'authorUid',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'slug', 'category', 'coverImage', 'content',
+          'excerpt', 'metaDescription', 'seoTitle', 'canonicalUrl',
+          'tags', 'author', 'publicationDate', 'status', 'authorUid',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+        isValidSlug(data.slug) &&
+        isAllowedCategory(data.category) &&
+        data.coverImage is string && data.coverImage.size() <= 300000 &&
+        data.content is string && data.content.size() <= 500000 &&
+        data.excerpt is string && data.excerpt.size() <= 500 &&
+        data.metaDescription is string && data.metaDescription.size() <= 320 &&
+        data.seoTitle is string && data.seoTitle.size() <= 160 &&
+        data.canonicalUrl is string && data.canonicalUrl.size() <= 500 &&
+        isValidTagList(data.tags) &&
+        data.author is string && data.author.size() >= 1 && data.author.size() <= 120 &&
+        data.publicationDate is string && data.publicationDate.size() >= 1 && data.publicationDate.size() <= 40 &&
+        data.status is string && data.status in ['draft', 'published'] &&
+        data.authorUid is string && data.authorUid.size() >= 1 && data.authorUid.size() <= 128 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidPlacementSlot(slot) {
+      return slot is map &&
+        slot.keys().hasAll(['enabled', 'slotId', 'format']) &&
+        slot.keys().hasOnly(['enabled', 'slotId', 'format']) &&
+        slot.enabled is bool &&
+        slot.slotId is string && slot.slotId.size() <= 64 &&
+        slot.format is string && slot.format in ['auto', 'horizontal', 'rectangle'];
+    }
+
+    function isValidAdSenseSettings(data) {
+      return data.keys().hasAll(['adsenseEnabled', 'publisherId', 'placements', 'updatedByUid', 'updatedAt']) &&
+        data.keys().hasOnly(['adsenseEnabled', 'publisherId', 'placements', 'updatedByUid', 'updatedAt']) &&
+        data.adsenseEnabled is bool &&
+        data.publisherId is string && data.publisherId.size() <= 64 &&
+        data.placements is map &&
+        data.placements.keys().hasAll(['headerBanner', 'homeMidSection', 'categoryTop', 'inArticle', 'footerBanner']) &&
+        data.placements.keys().hasOnly(['headerBanner', 'homeMidSection', 'categoryTop', 'inArticle', 'footerBanner']) &&
+        isValidPlacementSlot(data.placements.headerBanner) &&
+        isValidPlacementSlot(data.placements.homeMidSection) &&
+        isValidPlacementSlot(data.placements.categoryTop) &&
+        isValidPlacementSlot(data.placements.inArticle) &&
+        isValidPlacementSlot(data.placements.footerBanner) &&
+        data.updatedByUid is string && data.updatedByUid.size() >= 1 && data.updatedByUid.size() <= 128 &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidContactMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'subject', 'message', 'consentAccepted', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'subject', 'message', 'consentAccepted', 'createdAt']) &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 180 &&
+        data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 200 &&
+        data.message is string && data.message.size() >= 10 && data.message.size() <= 4000 &&
+        data.consentAccepted is bool && data.consentAccepted == true &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidAdminUser(data) {
+      return data.keys().hasAll(['email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['email', 'role', 'createdAt']) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 180 &&
+        data.role is string && data.role == 'admin' &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidBackupRecord(data) {
+      return data.keys().hasAll([
+          'label', 'articleCount', 'publishedCount', 'draftCount',
+          'sizeBytes', 'createdByUid', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'label', 'articleCount', 'publishedCount', 'draftCount',
+          'sizeBytes', 'createdByUid', 'createdAt'
+        ]) &&
+        data.label is string && data.label.size() >= 1 && data.label.size() <= 160 &&
+        data.articleCount is number && data.articleCount >= 0 &&
+        data.publishedCount is number && data.publishedCount >= 0 &&
+        data.draftCount is number && data.draftCount >= 0 &&
+        data.sizeBytes is number && data.sizeBytes >= 0 &&
+        data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidNotification(data) {
+      return data.keys().hasAll([
+          'title', 'message', 'type', 'audience', 'link', 'read', 'createdByUid', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'title', 'message', 'type', 'audience', 'link', 'read', 'createdByUid', 'createdAt'
+        ]) &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 160 &&
+        data.message is string && data.message.size() >= 1 && data.message.size() <= 500 &&
+        data.type is string && data.type in ['article_published', 'editorial', 'system'] &&
+        data.audience is string && data.audience in ['public', 'admin'] &&
+        data.link is string && data.link.size() <= 300 && (data.link == '' || data.link.matches('^/[a-zA-Z0-9/_-]*$')) &&
+        data.read is bool &&
+        data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+        data.createdAt is timestamp;
+    }
+
+    // -------------------------------------------------------------------------
+    // Collection Rules
+    // -------------------------------------------------------------------------
+
+    match /articles/{articleId} {
+      // Public visitors may only read published articles; drafts strictly require verified admin
+      allow get: if isValidId(articleId) && (
+        existing().status == 'published' || isAdmin()
+      );
+
+      // Zero get()/exists() in allow list; evaluates strictly on resource.data and request.auth
+      allow list: if existing().status == 'published' ||
+        isBootstrapAdminEmail() ||
+        (isVerifiedEmail() && existing().authorUid == request.auth.uid);
+
+      allow create: if isValidId(articleId) &&
+        isAdmin() &&
+        isValidArticle(incoming()) &&
+        incoming().authorUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidId(articleId) &&
+        isAdmin() &&
+        isValidArticle(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().authorUid == existing().authorUid &&
+        incoming().updatedAt == request.time &&
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'slug', 'category', 'coverImage', 'content',
+            'excerpt', 'metaDescription', 'seoTitle', 'canonicalUrl',
+            'tags', 'author', 'publicationDate', 'status', 'updatedAt'
+          ]) ||
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+        );
+
+      allow delete: if isValidId(articleId) && isAdmin();
+    }
+
+    match /siteSettings/{settingId} {
+      allow get: if isValidId(settingId) && settingId == 'adsense';
+      allow list: if false;
+
+      allow create: if isValidId(settingId) &&
+        settingId == 'adsense' &&
+        isAdmin() &&
+        isValidAdSenseSettings(incoming()) &&
+        incoming().updatedByUid == request.auth.uid &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isValidId(settingId) &&
+        settingId == 'adsense' &&
+        isAdmin() &&
+        isValidAdSenseSettings(incoming()) &&
+        incoming().updatedByUid == request.auth.uid &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'adsenseEnabled', 'publisherId', 'placements', 'updatedByUid', 'updatedAt'
+        ]);
+
+      allow delete: if false;
+    }
+
+    match /contactMessages/{messageId} {
+      // PII isolation: public can submit with explicit GDPR consent, never read/list
+      allow get: if isValidId(messageId) && isAdmin();
+      allow list: if isBootstrapAdminEmail();
+
+      allow create: if isValidId(messageId) &&
+        isValidContactMessage(incoming()) &&
+        incoming().createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (
+        (isVerifiedEmail() && request.auth.uid == uid) ||
+        isAdmin()
+      );
+      allow list: if isBootstrapAdminEmail();
+
+      allow create: if isValidId(uid) &&
+        isBootstrapAdminEmail() &&
+        isValidAdminUser(incoming()) &&
+        incoming().createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isValidId(uid) && isBootstrapAdminEmail() && uid != request.auth.uid;
+    }
+
+    match /backups/{backupId} {
+      allow get: if isValidId(backupId) && isAdmin();
+      allow list: if isBootstrapAdminEmail();
+
+      allow create: if isValidId(backupId) &&
+        isAdmin() &&
+        isValidBackupRecord(incoming()) &&
+        incoming().createdByUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+
+      allow update: if false;
+      allow delete: if isValidId(backupId) && isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isValidId(notificationId) && (
+        existing().audience == 'public' || isAdmin()
+      );
+
+      allow list: if existing().audience == 'public' ||
+        isBootstrapAdminEmail() ||
+        (isVerifiedEmail() && existing().createdByUid == request.auth.uid);
+
+      allow create: if isValidId(notificationId) &&
+        isAdmin() &&
+        isValidNotification(incoming()) &&
+        incoming().createdByUid == request.auth.uid &&
+        incoming().createdAt == request.time;
+
+      allow update: if isValidId(notificationId) &&
+        isAdmin() &&
+        isValidNotification(incoming()) &&
+        incoming().createdByUid == existing().createdByUid &&
+        incoming().createdAt == existing().createdAt &&
+        (
+          incoming().diff(existing()).affectedKeys().hasOnly(['read']) ||
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'title', 'message', 'type', 'audience', 'link', 'read'
+          ])
+        );
+
+      allow delete: if isValidId(notificationId) && isAdmin();
+    }
+  }
+}
