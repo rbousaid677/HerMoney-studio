@@ -6,6 +6,7 @@ import { Article } from '../types';
 import { calculateReadingTime, extractTableOfContents } from '../utils/htmlUtils';
 import { applySeoMetadata, buildArticleSchema, getCanonicalBaseUrl } from '../utils/seo';
 import { AdSenseSlot } from '../components/AdSenseSlot';
+import { ArticleShareBar } from '../components/ArticleShareBar';
 import { SafeImage } from '../components/SafeImage';
 
 interface ArticlePageProps {
@@ -118,6 +119,9 @@ export function ArticlePage({ slug, onNavigate }: ArticlePageProps) {
   }
 
   const categoryMeta = getCategoryByName(article.category);
+  const canonicalArticleUrl =
+    article.canonicalUrl.trim() || `${getCanonicalBaseUrl()}/article/${article.slug}`;
+  const articleShareDescription = article.metaDescription || article.excerpt || '';
 
   function scrollToHeading(id: string) {
     const el = document.getElementById(id);
@@ -170,6 +174,13 @@ export function ArticlePage({ slug, onNavigate }: ArticlePageProps) {
             Published {formatDate(article.publicationDate)}
           </time>
         </div>
+
+        <ArticleShareBar
+          variant="top"
+          title={article.title}
+          description={articleShareDescription}
+          url={canonicalArticleUrl}
+        />
       </header>
 
       {/* Prominent Cover Image */}
@@ -224,6 +235,14 @@ export function ArticlePage({ slug, onNavigate }: ArticlePageProps) {
 
         {/* Configurable In-Article AdSense Slot */}
         <AdSenseSlot placement="inArticle" />
+
+        {/* End-of-Article Sharing Section */}
+        <ArticleShareBar
+          variant="bottom"
+          title={article.title}
+          description={articleShareDescription}
+          url={canonicalArticleUrl}
+        />
 
         {/* Unboxed Tags & Category Return Navigation */}
         <footer className="mt-12 pt-8 border-t border-[#E8E0DF] space-y-6">
